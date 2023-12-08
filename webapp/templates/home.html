@@ -1,0 +1,116 @@
+<!-- yourappname/templates/location_form.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Location Input Form</title>
+</head>
+<body>
+    <h1>Get Your Current Location</h1>
+
+    <form action="{% url 'your_location_view_name' %}" method="post" id="locationForm">
+        {% csrf_token %}
+        <button type="button" onclick="getLocation()">Get Location</button>
+        <input type="hidden" name="latitude" id="latitude">
+        <input type="hidden" name="longitude" id="longitude">
+        <input type="submit" value="Submit Location" id="submitLocationBtn" style="display:none;">
+    </form>
+    <h2>Top 10 Nearest Restaurants:</h2>
+<ul>
+    {% for restaurant in nearest_restaurants %}
+        <li>
+            <form action="{% url 'process_selected_restaurant' %}" method="post">
+                {% csrf_token %}
+                <input  type="hidden" name="restaurant_id" value="{{ restaurant.Id }}">
+                <button type="submit" style="background-color:
+                    {% if restaurant.availability > 60 %}
+                        #80eb34;
+                    {% elif 30 <= restaurant.availability and restaurant.availability <= 60  %}
+                        #ebb734;
+                    {% else %}
+                        #f52614;
+                    {% endif %}">
+                    {{ restaurant.Name }}  {{ restaurant.availability }}
+                </button>
+            </form>
+        </li>
+    {% endfor %}
+</ul>
+
+    <h2>Top 10 Nearest Restaurants:</h2>
+<ul>
+    {% for restaurant in nearest_restaurants %}
+        <li>
+            <form id="restaurant-form-{{ restaurant.Id }}">
+                {% csrf_token %}
+                <input type="hidden" name="restaurant_id" value="{{ restaurant.Id }}">
+                <button type="button" onclick="subscribe('{{ restaurant.Id }}')">
+                    {{ restaurant.Name }} - {{ restaurant.availability }} {{ restaurant.Cuisine }}
+                </button>
+            </form>
+        </li>
+    {% endfor %}
+</ul>
+
+    <script>
+        function getLocation() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(showPosition, showError);
+            } else {
+                alert("Geolocation is not supported by this browser.");
+            }
+        }
+
+        function showPosition(position) {
+            var latitude = position.coords.latitude;
+            var longitude = position.coords.longitude;
+
+            // Set the form input values
+            document.getElementById("latitude").value = latitude;
+            document.getElementById("longitude").value = longitude;
+
+            // Optionally, display the latitude and longitude on the page
+            alert("Latitude: " + latitude + "\nLongitude: " + longitude);
+
+            // Automatically submit the form once coordinates are available
+            document.getElementById("submitLocationBtn").click();
+        }
+
+        function showError(error) {
+            // Handle geolocation errors if needed
+        }
+    </script>
+
+<script>
+    function subscribe(restaurantId) {
+        const socket = new WebSocket(`ws://${window.location.host}/ws/live_updates/`);
+        socket.onopen = () => {
+            socket.send(JSON.stringify({ restaurant_id: restaurantId }));
+        };
+        socket.onmessage = (event) => {
+            // Handle real-time updates here
+            const data = JSON.parse(event.data);
+            console.log(data);
+            // Check if it's a row data
+            if (data.row) {
+                const columns = data.row.columns;
+                const restaurantId = columns[0];
+                const totalPartySize = columns[3];
+
+                // Update the webpage
+                updateAvailability(restaurantId, totalPartySize);
+            }
+        };
+    }
+    function updateAvailability(restaurantId, totalPartySize) {
+        // Find the element corresponding to the restaurant
+        const restaurantElement = document.getElementById(`restaurant-${restaurantId}`);
+        if (restaurantElement) {
+            // Update the element, for example, updating the total party size
+            restaurantElement.textContent = `Total Party Size: ${totalPartySize}`;
+        }
+    }
+</script>
+</body>
+</html>

@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+<h2>Top 10 Nearest Restaurants:</h2>
+<ul>
+    {% for restaurant in nearest_restaurants %}
+        <li>
+            <form action="{% url 'process_selected_restaurant' %}" method="post">
+                {% csrf_token %}
+                <input type="hidden" name="restaurant_id" value="{{ restaurant.Id }}">
+                <button type="submit">{{ restaurant.Name }}</button>
+            </form>
+        </li>
+    {% endfor %}
+</ul>
+</body>
+</html>
