@@ -127,8 +127,12 @@ def your_location_view(request):
                 availability = 100 - no_of_checkins
             nearest_restaurants[rest_id]['availability'] = availability
 
+        coordinates = {
+            "latitude" : given_latitude,
+            "longitude" : given_longitude
+        }
         # return HttpResponse(f"Received location: Latitude {latitude}, Longitude {longitude}")
-    return render(request, 'home.html', {"nearest_restaurants" : nearest_restaurants.values()})
+    return render(request, 'home.html', {"nearest_restaurants" : nearest_restaurants.values(), "coordinates" : coordinates})
 
 def process_selected_restaurant(request):
     if request.method == 'POST':

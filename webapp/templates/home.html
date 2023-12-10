@@ -4,54 +4,94 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+
     <title>Location Input Form</title>
 </head>
 <body>
-    <h1>Get Your Current Location</h1>
 
+<div class="container-fluid">
+{%  if not coordinates %}
+<h1 class="mt-3">Get Your Current Location</h1>
     <form action="{% url 'your_location_view_name' %}" method="post" id="locationForm">
         {% csrf_token %}
-        <button type="button" onclick="getLocation()">Get Location</button>
+        <button type="button" class="btn btn-primary" onclick="getLocation()">Get Location</button>
         <input type="hidden" name="latitude" id="latitude">
         <input type="hidden" name="longitude" id="longitude">
-        <input type="submit" value="Submit Location" id="submitLocationBtn" style="display:none;">
+        <input type="submit" value="Submit Location" id="submitLocationBtn" class="btn btn-success" style="display:none;">
     </form>
-    <h2>Top 10 Nearest Restaurants:</h2>
-<ul>
-    {% for restaurant in nearest_restaurants %}
-        <li>
-            <form action="{% url 'process_selected_restaurant' %}" method="post">
-                {% csrf_token %}
-                <input  type="hidden" name="restaurant_id" value="{{ restaurant.Id }}">
-                <button type="submit" style="background-color:
-                    {% if restaurant.availability > 60 %}
-                        #80eb34;
-                    {% elif 30 <= restaurant.availability and restaurant.availability <= 60  %}
-                        #ebb734;
-                    {% else %}
-                        #f52614;
-                    {% endif %}">
-                    {{ restaurant.Name }}  {{ restaurant.availability }}
-                </button>
-            </form>
-        </li>
-    {% endfor %}
-</ul>
+{% endif %}
+    <h2 class="mt-3">Top 10 Nearest Restaurants:</h2>
 
-    <h2>Top 10 Nearest Restaurants:</h2>
-<ul>
+    <div class="row">
+        <!-- Left side - List of Restaurants -->
+        <div class="col-md-6">
+            {% for restaurant in nearest_restaurants %}
+                <div class="card mb-3">
+                    <form class="card-body" id="restaurant-form-{{ restaurant.Id }}">
+                        {% csrf_token %}
+                        <input type="hidden" name="restaurant_id" value="{{ restaurant.Id }}">
+                        <h3 class="card-title">{{ restaurant.Name }}</h3>
+                        <p class="card-text"><strong>Cuisine:</strong> {{ restaurant.Cuisine }}</p>
+                        <p class="card-text"><strong>Address:</strong> {{ restaurant.Address.Building }}, {{ restaurant.Address.Street }}, {{ restaurant.Address.Borough }}, {{ restaurant.Address.Zipcode }}</p>
+                        <span class="badge badge-pill" style="background-color:
+                            {% if restaurant.availability > 60 %}
+                                #80eb34;
+                            {% elif 30 <= restaurant.availability and restaurant.availability <= 60  %}
+                                #ebb734
+                            {% else %}
+                                #f52614;
+                            {% endif %}">
+                            Availability
+                        </span>
+                        <button type="button" class="btn btn-primary" onclick="subscribe('{{ restaurant.Id }}')">
+                            Interested
+                        </button>
+                    </form>
+                </div>
+            {% endfor %}
+        </div>
+
+        <!-- Right side - Map -->
+        <div class="col-md-6">
+            <div id="map" style="height: 400px;"></div>
+        </div>
+    </div>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+<script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+
+<script>
+    // Initialize Leaflet map
+    var map = L.map('map').setView([{{ coordinates.latitude }}, {{ coordinates.longitude }}], 15); // Set initial coordinates and zoom level
+
+    // Add a base map layer (you can customize the tile layer)
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors'
+    }).addTo(map);
+
+    // Add marker for the current location (using a circle)
+    var currentLocationMarker = L.circleMarker([{{ coordinates.latitude }}, {{ coordinates.longitude }}], {
+        color: 'blue',
+        fillColor: 'blue',
+        fillOpacity: 0.8,
+        radius: 10
+    }).addTo(map).bindPopup("Your Location").openPopup();
+
+    // Add markers for each restaurant
     {% for restaurant in nearest_restaurants %}
-        <li>
-            <form id="restaurant-form-{{ restaurant.Id }}">
-                {% csrf_token %}
-                <input type="hidden" name="restaurant_id" value="{{ restaurant.Id }}">
-                <button type="button" onclick="subscribe('{{ restaurant.Id }}')">
-                    {{ restaurant.Name }} - {{ restaurant.availability }} {{ restaurant.Cuisine }}
-                </button>
-            </form>
-        </li>
+        var marker = L.marker([{{ restaurant.location.coordinates.1 }}, {{ restaurant.location.coordinates.0 }}])
+            .addTo(map)
+            .bindPopup("<b>{{ restaurant.Name }}</b><br>{{ restaurant.Cuisine }}<br>{{ restaurant.Address.Building }}, {{ restaurant.Address.Street }}, {{ restaurant.Address.Borough }}, {{ restaurant.Address.Zipcode }}<br>Availability: <span class='badge' style='background-color: {% if restaurant.availability > 60 %}#80eb34;{% elif 30 <= restaurant.availability and restaurant.availability <= 60 %}#ebb734;{% else %}#f52614;{% endif %};'>{{ restaurant.availability }}</span>");
     {% endfor %}
-</ul>
+</script>
+
+</div>
 
     <script>
         function getLocation() {
