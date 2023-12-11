@@ -81,6 +81,22 @@ def your_location_view(request):
     if request.method == 'POST':
         given_latitude = request.POST.get('latitude')
         given_longitude = request.POST.get('longitude')
+        cuisines = restaurants.distinct('Cuisine')
+        coordinates = {
+            "latitude": given_latitude,
+            "longitude": given_longitude
+        }
+        return render(request, 'home.html',
+                      {"cuisines": cuisines, "coordinates": coordinates})
+
+    pass
+
+def location_plus_cuisine(request):
+    if request.method == 'POST':
+        selected_cuisines = request.POST.getlist('cuisines')
+        print(selected_cuisines)
+        given_latitude = request.POST.get('latitude')
+        given_longitude = request.POST.get('longitude')
         print(given_latitude, given_longitude)
         # Do something with the latitude and longitude, e.g., save to the database
         result = restaurants.aggregate([
@@ -90,6 +106,11 @@ def your_location_view(request):
                     "distanceField": "tempDistance",
                     # "maxDistance": max_distance_meters,
                     "spherical": True
+                }
+            },
+            {
+                "$match": {
+                    "Cuisine": {"$in": selected_cuisines}
                 }
             },
             {
@@ -137,12 +158,29 @@ def your_location_view(request):
 def process_selected_restaurant(request):
     if request.method == 'POST':
         restaurant_id = request.POST.get('restaurant_id')
-        print(restaurant_id)
+        record = restaurants.find({"Id" : restaurant_id})
+        record = [r for r in record][0]
+        current_datetime = datetime.now()
+        latest_checkins = client.query(f"SELECT * FROM AGG_CHECKINS WHERE RESTAURANT_ID = '{restaurant_id}'")
+        json_sr = ''
         try:
-            query = client.query(f"SELECT * FROM AGG_CHECKINS WHERE RESTAURANT_ID = '{restaurant_id}'")
-            for item in query:
-                print(item)
-        except:
-            pass
-        return render(request, 'home.html')
+            for check in latest_checkins:
+                json_sr += check
+        except Exception as e:
+            print(e)
+        latest_checkins_json = json.loads(json_sr)
+        for check in latest_checkins_json[1:]:
+
+            rest_id = check['row']['columns'][0]
+            window_start = datetime.utcfromtimestamp(check['row']['columns'][1] / 1000.0)
+            window_end = datetime.utcfromtimestamp(check['row']['columns'][2] / 1000.0)
+            no_of_checkins = check['row']['columns'][3]
+
+            # print(rest_id, window_start, window_end, no_of_checkins)
+            if (current_datetime - window_end).total_seconds() / 60 > 120:
+                availability = 100
+            else:
+                availability = 100 - no_of_checkins
+            record['availability'] = availability
+        return render(request, 'interested.html', {"selected_restaurant": record})
     pass

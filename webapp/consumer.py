@@ -2,6 +2,7 @@
 import json
 from channels.generic.websocket import AsyncWebsocketConsumer
 from ksql import KSQLAPI
+from datetime import datetime
 import asyncio
 import time
 from channels.layers import get_channel_layer
@@ -32,6 +33,7 @@ class YourConsumer(AsyncWebsocketConsumer):
         # Fetch data and send it back to the client
         # while self.websocket_state == 'CONNECTED':
         try:
+            current_datetime = datetime.now()
             query = client.query(f"SELECT * FROM AGG_CHECKINS WHERE RESTAURANT_ID = '{restaurant_id}'")
             json_sr = ''
             try:
@@ -40,9 +42,18 @@ class YourConsumer(AsyncWebsocketConsumer):
             except Exception as e:
                 print(e)
             latest_checkins_json = json.loads(json_sr)
-            time.sleep(10)
-            for item in query:
-                await self.send(text_data=json.dumps(item))
+            for check in latest_checkins_json[1:]:
+                rest_id = check['row']['columns'][0]
+                window_start = datetime.utcfromtimestamp(check['row']['columns'][1] / 1000.0)
+                window_end = datetime.utcfromtimestamp(check['row']['columns'][2] / 1000.0)
+                no_of_checkins = check['row']['columns'][3]
+
+                # print(rest_id, window_start, window_end, no_of_checkins)
+                if (current_datetime - window_end).total_seconds() / 60 > 120:
+                    availability = 100
+                else:
+                    availability = 100 - no_of_checkins
+                await self.send(text_data=json.dumps({"availability" :  availability}))
         except Exception as e:
-            pass
+            print(e)
                 # print(f"Error: {e}")  # Log the error for debugging
