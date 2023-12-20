@@ -4,7 +4,8 @@ from .views import (home,
 your_location_view,
                     # recommend_on_location,
                     process_selected_restaurant,
-location_plus_cuisine
+location_plus_cuisine,
+new_recommendations
                     )
 
 urlpatterns = [
@@ -14,4 +15,5 @@ urlpatterns = [
 
     # path('recommend_on_location/', recommend_on_location, name='recommend_on_location'),
     path('process_selected_restaurant/', process_selected_restaurant, name='process_selected_restaurant'),
+    path('new_recommendations/', new_recommendations, name='new_recommendations'),
 ]

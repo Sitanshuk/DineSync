@@ -1,5 +1,5 @@
 {% load static %}
-<!-- yourappname/templates/location_form.html -->
+<!-- yourappname/templates/new_recommendations.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -65,11 +65,11 @@
     button[type="submit"] {
         margin-top: 10px; /* add some space above the submit button */
     }
+
     .logo {
             text-align: center;
             margin-top: 20px; /* Adjust the margin as needed */
         }
-
     .card-body{
         background-color: #f6a66b;
     }
@@ -83,8 +83,8 @@
 <div class="logo">
         <img src="{% static 'logo.png' %}" alt="Your Logo"  height="150">
     </div>
-{%  if not coordinates %}
-<h1 class="mt-3">Get Your Current Location</h1>
+{#{%  if not coordinates %}#}
+<h1 class="mt-3">Update Your Current Location</h1>
     <form action="{% url 'your_location_view_name' %}" method="post" id="locationForm">
         {% csrf_token %}
         <button type="button" class="btn btn-primary" onclick="getLocation()">Get Location</button>
@@ -92,12 +92,15 @@
         <input type="hidden" name="longitude" id="longitude">
         <input type="submit" value="Submit Location" id="submitLocationBtn" class="btn btn-success" style="display:none;">
     </form>
-{% endif %}
+{#{% endif %}#}
 
 
-{%  if coordinates %}
+{% if coordinates %}
 <h2>Choose Cuisine</h2>
-
+    <button type="button" class="btn btn-primary" data-toggle="collapse" data-target="#cuisineCollapse">
+    Toggle Cuisine
+</button>
+<div id="cuisineCollapse" class="collapse">
 <form method="post" action="{% url 'location_plus_cuisine' %}">
         {% csrf_token %}
 
@@ -115,11 +118,12 @@
 
         <button type="submit">Submit</button>
     </form>
-
+</div>
 {% endif %}
 {# Displaying Top 10 Restaurants #}
 {% if nearest_restaurants %}
-    <h2 class="mt-3">Top 10 Nearest Restaurants:</h2>
+    <h2 class="mt-3">Oops! Restaurant you were looking for is almost full</h2>
+    <h3>Don't Stress, I have found similar places near it.</h3>
 
     <div class="row">
         <!-- Left side - List of Restaurants -->
@@ -223,37 +227,6 @@
             // Handle geolocation errors if needed
         }
     </script>
-
-{# JS code for establishing a Websocket between Server and user#}
-<script>
-    function subscribe(restaurantId) {
-        const socket = new WebSocket(`ws://${window.location.host}/ws/live_updates/`);
-        socket.onopen = () => {
-            socket.send(JSON.stringify({ restaurant_id: restaurantId }));
-        };
-        socket.onmessage = (event) => {
-            // Handle real-time updates here
-            const data = JSON.parse(event.data);
-            console.log(data);
-            // Check if it's a row data
-            if (data.row) {
-                const columns = data.row.columns;
-                const restaurantId = columns[0];
-                const totalPartySize = columns[3];
-
-                // Update the webpage
-                updateAvailability(restaurantId, totalPartySize);
-            }
-        };
-    }
-    function updateAvailability(restaurantId, totalPartySize) {
-        // Find the element corresponding to the restaurant
-        const restaurantElement = document.getElementById(`restaurant-${restaurantId}`);
-        if (restaurantElement) {
-            // Update the element, for example, updating the total party size
-            restaurantElement.textContent = `Total Party Size: ${totalPartySize}`;
-        }
-    }
 </script>
 </body>
 </html>
