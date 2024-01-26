@@ -22,6 +22,10 @@ DineSync leverages big data tools, including Spark, MongoDB, and Kafka, to creat
 - Check-in traffic is generated internally for this short-term project.
 - Restaurant owners are assumed to provide check-in real-time data for the application.
 
+### Demo
+[Click here.](https://drive.google.com/file/d/1TOtnOQmSDKjwz566OKt3pihtLCx4hA1m/view?usp=sharing
+)
+
 ## Setup
 
 ### Prerequisites
